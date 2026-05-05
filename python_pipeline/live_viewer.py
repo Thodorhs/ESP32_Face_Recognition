@@ -8,8 +8,8 @@ BAUD_RATE = 921600
 WIDTH = 320
 HEIGHT = 240
 FRAME_PREAMBLE = b"===FRAME===\n"
-PREVIEW_W = 160
-PREVIEW_H = 120
+PREVIEW_W = 320
+PREVIEW_H = 240
 
 def capture_and_display_loop(port: str):
     print(f"Opening serial port {port}... ", end="")
@@ -66,8 +66,8 @@ def capture_and_display_loop(port: str):
             b = ((byte2 & 0x1F) << 3).astype(np.uint8)
             last_frame_rgb = np.stack([r, g, b], axis=2)
 
-            small_surface = pygame.surfarray.make_surface(last_frame_rgb.swapaxes(0, 1))
-            surface = pygame.transform.scale(small_surface, (WIDTH, HEIGHT))
+            frame_rgb_contiguous = np.ascontiguousarray(last_frame_rgb)
+            surface = pygame.surfarray.make_surface(frame_rgb_contiguous.swapaxes(0, 1))
             screen.blit(surface, (0, 0))
             pygame.display.flip()
 

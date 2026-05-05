@@ -3,24 +3,21 @@
 #include <cstring>
 #include <inttypes.h>
 
-// ESP includes
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "nvs_flash.h"
 #include "esp_heap_caps.h"
 #include "driver/usb_serial_jtag.h"
 
-// TensorFlow Lite Micro includes
 #include "tensorflow/lite/micro/micro_mutable_op_resolver.h"
 #include "tensorflow/lite/micro/micro_interpreter.h"
 #include "tensorflow/lite/micro/system_setup.h"
 #include "tensorflow/lite/schema/schema_generated.h"
 
-// Project includes
 #include "camera.h"
 #include "model_data.h"
 
-// ANSI Color Codes
+// ANSI color codes
 #define COLOR_GREEN  "\033[32m"
 #define COLOR_RED    "\033[31m"
 #define COLOR_YELLOW "\033[33m"
@@ -40,7 +37,6 @@ TfLiteTensor* output = nullptr;
 constexpr int kTensorArenaSize = 1024 * 1024;
 uint8_t* tensor_arena = nullptr;
 
-// FIX: Revert camera buffer back to Internal RAM so the USB driver can read
 static uint8_t image_buffer[FRAME_W * FRAME_H * FRAME_C];
 
 void init_tflite() {
@@ -131,7 +127,7 @@ void setup() {
     print_tensor_info();
 
     usb_serial_jtag_driver_config_t cfg = {
-        .tx_buffer_size = 256 * 1024,  // ← KEY FIX
+        .tx_buffer_size = 256 * 1024,
         .rx_buffer_size = 512,
     };
     usb_serial_jtag_driver_install(&cfg);
@@ -144,26 +140,24 @@ void setup() {
 }
 void send_preview_frame() {
     const char* preamble = "\n===FRAME===\n";
-    usb_serial_jtag_write_bytes(preamble, strlen(preamble), pdMS_TO_TICKS(100));
+    usb_serial_jtag_write_bytes(preamble, strlen(preamble), pdMS_TO_TICKS(50));
 
     uint8_t chunk_buf[1024];
     int chunk_idx = 0;
 
-    // We still extract the 160x120 pixels, but we send them in 1KB chunks!
-    for (int y = 0; y < FRAME_H; y += 2) {
-        for (int x = 0; x < FRAME_W; x += 2) {
+    // Send full 320x240 frame
+    for (int y = 0; y < FRAME_H; y++) {
+        for (int x = 0; x < FRAME_W; x++) {
             int idx = (y * FRAME_W + x) * 2;
             chunk_buf[chunk_idx++] = image_buffer[idx];
             chunk_buf[chunk_idx++] = image_buffer[idx + 1];
 
-            // When the chunk is full, fire it over USB instantly
             if (chunk_idx == sizeof(chunk_buf)) {
                 usb_serial_jtag_write_bytes(chunk_buf, chunk_idx, pdMS_TO_TICKS(50));
                 chunk_idx = 0;
             }
         }
     }
-    // Send whatever is left over
     if (chunk_idx > 0) {
         usb_serial_jtag_write_bytes(chunk_buf, chunk_idx, pdMS_TO_TICKS(50));
     }
@@ -184,10 +178,7 @@ void loop() {
             }
         }
 
-        // --- NEW: CONFIDENCE THRESHOLD ---
-        // INT8 ranges from -128 (0%) to 127 (100%). 0 is roughly 50%.
-        // If it guesses Class 0 (You) but isn't confident enough, reject it!
-        int8_t SECURITY_THRESHOLD = 20; // Adjust this higher (e.g. 40) if your parents still get in!
+        int8_t SECURITY_THRESHOLD = 20;
         
         if (best_class == 0 && max_score < SECURITY_THRESHOLD) {
             best_class = 1; // Demote to "Unrecognized Face"
