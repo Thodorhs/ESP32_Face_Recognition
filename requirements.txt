@@ -1,6 +1,14 @@
-numpy
-tensorflow
-scipy
-scikit-learn
-tflite
-Pillow
+# ML
+tensorflow>=2.15.0
+keras>=3.0.0
+numpy>=1.24.0
+scikit-learn>=1.3.0
+
+# image processing
+Pillow>=10.0.0
+
+# serial communication
+pyserial>=3.5
+
+# live viewer
+pygame>=2.5.0

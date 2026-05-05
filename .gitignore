@@ -3,6 +3,11 @@
 # =========================
 
 data/
+esp32/build/
+esp32/managed_components/
+esp32/main/model_data.cc
+esp32/main/model_data.h
+esp32/dependencies.lock
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
